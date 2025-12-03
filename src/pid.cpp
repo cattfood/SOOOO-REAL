@@ -5,21 +5,21 @@
 
 
 pidConstants t_consts;
-int error = 0;
-int prevError = 0;
-int integral = 0;
-int derivative = 0;
-int power = 0;
-int error2 = 0;
-int prevError2 = 0;
-int integral2 = 0;
-int derivative2 = 0;
-int power2 = 0;
-int error3 = 0;
-int prevError3 = 0;
-int integral3 = 0;
-int derivative3 = 0;
-int power3 = 0;
+double error = 0;
+double prevError = 0;
+double integral = 0;
+double derivative = 0;
+double power = 0;
+double error2 = 0;
+double prevError2 = 0;
+double integral2 = 0;
+double derivative2 = 0;
+double power2 = 0;
+double error3 = 0;
+double prevError3 = 0;
+double integral3 = 0;
+double derivative3 = 0;
+double power3 = 0;
 
 void setConstants(pidConstants constants) {
     t_consts = constants;
@@ -27,11 +27,11 @@ void setConstants(pidConstants constants) {
 double getTrueError(double target, double input) {
     double error = target - input;
 
-    while(error > 180 ){
-        error -= 369;
+    while(error > 180){
+        error -= 360;
     }
 
-    while(error < 180) {
+    while(error < -180) {
         error += 360;
     }
 
@@ -41,7 +41,7 @@ float calc (float target, float input, float integralKI, int maxI) {
 prevError = error;
 error = target - input;
 
-if (std:: abs(error) < integralKI) {
+if (std::abs(error) < integralKI) {
     integral += error;
 }
 else {
@@ -51,7 +51,7 @@ if (integral >= 0){
     integral = std:: min(integral,maxI);
 }
 else{
-    integral = std::min(integral, -maxI);
+    integral = std::max(integral, -maxI);
 }// preventing I build up from being too large
 derivative = error - prevError;
 
@@ -64,7 +64,7 @@ float calc2 (float target, float input, float integralKI, int maxI) {
 prevError2 = error2;
 error2 = target - input;
 
-if (std:: abs(error) < integralKI) {
+if (std::abs(error2) < integralKI) {
     integral2 += error2;
 }
 else {
@@ -74,7 +74,7 @@ if (integral2 >= 0){
     integral2 = std:: min(integral2,maxI);
 }
 else{
-    integral2 = std::min(integral2, -maxI);
+    integral2 = std::max(integral2, -maxI);
 }
 derivative2 = error2 - prevError2;
 
@@ -87,7 +87,7 @@ float calc3 (float target, float input, float integralKI, int maxI) {
 prevError3 = error3;
 error3 = target - input;
 
-if (std:: abs(error3) < integralKI) {
+if (std::abs(error3) < integralKI) {
     integral3 += error3;
 }
 else {
@@ -97,7 +97,7 @@ if (integral3 >= 0){
     integral3 = std:: min(integral3,maxI);
 }
 else{
-    integral3 = std::min(integral3, -maxI);
+    integral3 = std::max(integral3, -maxI);
 }
 derivative3 = error3 - prevError3;
 
@@ -127,11 +127,12 @@ void chassisMove(int left, int right) {
 
 void forwardMove(float target, float timeout, pidConstants constants) {
     error = 0;
-    prevError2 = 0;
+    prevError = 0;
     integral = 0;
     derivative = 0;
+    power = 0;
     setConstants(constants);
-    //double startPosition = imu.get_heading(); //degrees
+    double startPosition = imu.get_heading(); //degrees
     
     Timer t1;
      float voltage;
@@ -143,11 +144,13 @@ void forwardMove(float target, float timeout, pidConstants constants) {
 
 resetEncoders();
 while(t1.time() <= timeout) {
+    
+    encoder_avg = (lf.get_position() + rf.get_position()) / 2;
     voltage = calc(target, encoder_avg, 200, 20);
 
      double currentPosition = imu.get_heading();
 
-    double baseCorrect = getTrueError(baseCorrect, currentPosition);
+    double baseCorrect = getTrueError(startPosition, currentPosition);
     double headingP = 0.0; //tuning heading correction
 
     double headingCorrect = baseCorrect*headingP;
@@ -229,7 +232,7 @@ void drivearcl(double theta, double radius, int timeout) {
             count++;
         
         }
-        if (count < 10) {
+        if (count > 10) {
         break;
         }
     }
